@@ -176,8 +176,8 @@ vec3 navigation_color(float x01, float y01) {
     float scaled = min(x01 * 3.0, 2.999999);
     int chip = int(floor(scaled));
     vec2 local = vec2(fract(scaled), y01 / NAV_FRACTION);
-    bool active = chip == u_object;
-    vec3 background = active ? vec3(0.20) : vec3(0.075);
+    bool is_current = chip == u_object;
+    vec3 background = is_current ? vec3(0.20) : vec3(0.075);
     float edge = max(
         max(step(local.x, 0.018), step(0.982, local.x)),
         max(step(local.y, 0.04), step(0.96, local.y))
