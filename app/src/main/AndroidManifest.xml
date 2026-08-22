@@ -10,7 +10,7 @@
             android:name="android.app.NativeActivity"
             android:configChanges="orientation|screenSize|keyboardHidden|density"
             android:exported="true"
-            android:screenOrientation="unspecified">
+            android:screenOrientation="landscape">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="l" />

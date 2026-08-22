@@ -116,17 +116,17 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save -no-metrics
           script: |
-            adb shell wm size 720x1280
+            adb shell wm size 1280x720
             adb shell wm density 320
             adb install -r artifacts/app-debug.apk
             adb logcat -c
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.isomorphisms.l/android.app.NativeActivity
             sleep 4
             adb exec-out screencap -p > l-e4.png
-            adb shell input tap 360 1190
+            adb shell input tap 640 680
             sleep 2
             adb exec-out screencap -p > l-e6.png
-            adb shell input swipe 180 520 420 520 450
+            adb shell input swipe 320 320 700 320 450
             sleep 2
             adb exec-out screencap -p > l-e6-pan.png
             adb logcat -d > l-phone.log
