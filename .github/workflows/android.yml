@@ -138,14 +138,8 @@ jobs:
             grep -q 'renderer ready' l-phone.log
             grep -q 'first frame: object=0' l-phone.log
             grep -q 'selected object 1' l-phone.log
-            if cmp -s l-e4.png l-e6.png; then
-              echo 'object navigation did not change the frame'
-              exit 1
-            fi
-            if cmp -s l-e6.png l-e6-pan.png; then
-              echo 'one-finger pan did not change the frame'
-              exit 1
-            fi
+            test "$(sha256sum l-e4.png | cut -d' ' -f1)" != "$(sha256sum l-e6.png | cut -d' ' -f1)"
+            test "$(sha256sum l-e6.png | cut -d' ' -f1)" != "$(sha256sum l-e6-pan.png | cut -d' ' -f1)"
 
       - uses: actions/upload-artifact@v4
         if: always()
