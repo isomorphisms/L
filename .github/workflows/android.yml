@@ -48,11 +48,14 @@ jobs:
 
       - name: Check bundled Wegert shader
         run: |
+          sudo apt-get update
+          sudo apt-get install --yes glslang-tools
           test -s app/src/main/assets/l-wegert.frag
           grep -q 'uniform vec2 u_center' app/src/main/assets/l-wegert.frag
           grep -q 'uniform int u_object' app/src/main/assets/l-wegert.frag
           grep -q 'hcl_to_srgb' app/src/main/assets/l-wegert.frag
-          grep -q 'ETA3_8' app/src/main/assets/l-wegert.frag
+          grep -q 'evaluate_eta3_8' app/src/main/assets/l-wegert.frag
+          glslangValidator -S frag app/src/main/assets/l-wegert.frag
 
       - name: Build debug APK
         shell: bash
@@ -123,7 +126,7 @@ jobs:
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.isomorphisms.l/android.app.NativeActivity
             sleep 4
             adb exec-out screencap -p > l-e4.png
-            adb shell input tap 640 680
+            adb shell input tap 640 610
             sleep 2
             adb exec-out screencap -p > l-e6.png
             adb shell input swipe 320 320 700 320 450
@@ -131,8 +134,10 @@ jobs:
             adb exec-out screencap -p > l-e6-pan.png
             adb logcat -d > l-phone.log
             adb shell pidof -s org.isomorphisms.l | tr -d '\r' | grep -Eq '^[0-9]+$'
-            grep -q 'selected object 1' l-phone.log
             ! grep -Eiq 'shader compilation failed|program link failed|eglInitialize failed|could not choose GLES3 EGL config|could not create EGL surface/context|eglMakeCurrent failed|could not open asset|missing camera/object' l-phone.log
+            grep -q 'renderer ready' l-phone.log
+            grep -q 'first frame: object=0' l-phone.log
+            grep -q 'selected object 1' l-phone.log
             if cmp -s l-e4.png l-e6.png; then
               echo 'object navigation did not change the frame'
               exit 1
