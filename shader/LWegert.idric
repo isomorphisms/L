@@ -1,0 +1,37 @@
+module Example.LWegert
+
+import Data.Vect
+import Shader
+
+%default total
+
+-- This is the small shader-language dogfood seam for L.  The packaged Android
+-- fragment currently carries the fuller q-series evaluator and Wegert HCL
+-- palette; this source keeps camera/object navigation expressible in Edric
+-- while that evaluator is moved behind the backend.
+public export
+portrait : (SVec 2 Double, SVec 2 Double, SDouble, SDouble, SDouble) -> SVec 4 Double
+portrait (uv, center, halfHeight, aspect, object) =
+  let
+    x = index 0 center + index 0 uv * halfHeight * aspect
+    y = index 1 center + index 1 uv * halfHeight
+
+    -- Three visibly different holomorphic test germs selected without a branch.
+    first = 1.0 - step 0.5 object
+    second = step 0.5 object - step 1.5 object
+    third = step 1.5 object
+
+    phase = first * (x * x - y * y)
+          + second * (2.0 * x * y)
+          + third * (x + y)
+    radius = sqrt (x * x + y * y)
+    band = fract (radius * 4.0)
+
+    r = 0.5 + 0.5 * sin (phase * 3.0)
+    g = 0.35 + 0.55 * band
+    b = 0.5 + 0.5 * sin (phase * 3.0 + 2.0)
+  in [r, g, b, 1.0]
+
+public export
+main : (SVec 2 Double, SVec 2 Double, SDouble, SDouble, SDouble) -> SVec 4 Double
+main = portrait

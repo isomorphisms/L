@@ -1,0 +1,215 @@
+name: L Android Wegert
+
+on:
+  push:
+    branches:
+      - android-edric-wegert
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EDRIC_REF: main
+  SHADER_BACKEND_REF: 7876b79058d6f59711151a21697369c1cf72df2f
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android toolchain
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;29.0.14206865" "cmake;3.22.1"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.5.0'
+
+      - name: Require native-only application source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find app/src -type f \( -name '*.java' -o -name '*.kt' \) -print | grep -q .; then
+            echo 'Java/Kotlin application source found'
+            exit 1
+          fi
+          grep -q 'android:hasCode="false"' app/src/main/AndroidManifest.xml
+
+      - name: Check bundled Wegert shader
+        run: |
+          test -s app/src/main/assets/l-wegert.frag
+          grep -q 'uniform vec2 u_center' app/src/main/assets/l-wegert.frag
+          grep -q 'uniform int u_object' app/src/main/assets/l-wegert.frag
+          grep -q 'hcl_to_srgb' app/src/main/assets/l-wegert.frag
+          grep -q 'ETA3_8' app/src/main/assets/l-wegert.frag
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace :app:assembleDebug 2>&1 | tee android-build.log
+
+      - name: Upload Android build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l-android-build-log
+          path: android-build.log
+          if-no-files-found: warn
+
+      - name: Verify APK contents
+        run: |
+          unzip -l app/build/outputs/apk/debug/app-debug.apk > "$RUNNER_TEMP/apk-files"
+          grep -q 'lib/arm64-v8a/libl.so' "$RUNNER_TEMP/apk-files"
+          grep -q 'lib/armeabi-v7a/libl.so' "$RUNNER_TEMP/apk-files"
+          grep -q 'lib/x86_64/libl.so' "$RUNNER_TEMP/apk-files"
+          grep -q 'assets/l-wegert.frag' "$RUNNER_TEMP/apk-files"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: l-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+  emulate:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: l-debug-apk
+          path: artifacts
+
+      - name: Enable KVM permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Emulate phone and test navigation
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: medium_phone
+          ram-size: 2048M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot-save -no-metrics
+          script: |
+            adb shell wm size 720x1280
+            adb shell wm density 320
+            adb install -r artifacts/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.isomorphisms.l/android.app.NativeActivity
+            sleep 4
+            adb exec-out screencap -p > l-e4.png
+            adb shell input tap 360 1190
+            sleep 2
+            adb exec-out screencap -p > l-e6.png
+            adb shell input swipe 180 520 420 520 450
+            sleep 2
+            adb exec-out screencap -p > l-e6-pan.png
+            adb logcat -d > l-phone.log
+            adb shell pidof -s org.isomorphisms.l | tr -d '\r' | grep -Eq '^[0-9]+$'
+            grep -q 'selected object 1' l-phone.log
+            ! grep -Eiq 'shader compilation failed|program link failed|eglInitialize failed|could not choose GLES3 EGL config|could not create EGL surface/context|eglMakeCurrent failed|could not open asset|missing camera/object' l-phone.log
+            if cmp -s l-e4.png l-e6.png; then
+              echo 'object navigation did not change the frame'
+              exit 1
+            fi
+            if cmp -s l-e6.png l-e6-pan.png; then
+              echo 'one-finger pan did not change the frame'
+              exit 1
+            fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: l-phone-emulator-evidence
+          path: |
+            l-e4.png
+            l-e6.png
+            l-e6-pan.png
+            l-phone.log
+          if-no-files-found: warn
+
+  shader-source:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install compiler and shader dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes chezscheme glslang-tools libgmp-dev
+
+      - name: Check out Edric
+        uses: actions/checkout@v4
+        with:
+          repository: isomorphisms/Idric
+          ref: ${{ env.EDRIC_REF }}
+          path: idric
+
+      - name: Check out Idris shader backend
+        uses: actions/checkout@v4
+        with:
+          repository: isomorphisms/idris-shader-backend
+          ref: ${{ env.SHADER_BACKEND_REF }}
+          path: shader-backend
+
+      - name: Build self-hosted Edric and compiler API
+        shell: bash
+        run: |
+          set -euxo pipefail
+          make -C idric bootstrap SCHEME=chezscheme
+          make -C idric install PREFIX="$HOME/.idris2"
+          export PATH="$HOME/.idris2/bin:$PATH"
+          make -C idric clean
+          make -C idric all IDRIS2_BOOT="$HOME/.idris2/bin/idris2"
+          make -C idric install PREFIX="$HOME/.idris2"
+          make -C idric install-api PREFIX="$HOME/.idris2"
+          idris2 --version
+
+      - name: Build GLSL ES backend against Edric
+        run: |
+          echo "$HOME/.idris2/bin" >> "$GITHUB_PATH"
+          PATH="$HOME/.idris2/bin:$PATH" make -C shader-backend backend
+
+      - name: Compile L shader source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cp shader/LWegert.idric shader-backend/src/Example/LWegert.idric
+          (
+            cd shader-backend
+            ./build/exec/idris2-glsles \
+              --cg glsles \
+              --source-dir src \
+              --output-dir generated \
+              src/Example/LWegert.idric \
+              -o l-wegert-source
+          )
+          test -s shader-backend/generated/l-wegert-source.frag
+          glslangValidator -S frag shader-backend/generated/l-wegert-source.frag
