@@ -13,51 +13,69 @@ uniform int u_object;
 const float TAU = 6.28318530717958647692;
 const float LOG_10 = 2.30258509299404568402;
 const float NAV_FRACTION = 0.18;
-const int TERM_COUNT = 17;
 
-const float E4[TERM_COUNT] = float[TERM_COUNT](
-    1.0, 240.0, 2160.0, 6720.0, 17520.0, 30240.0, 60480.0,
-    82560.0, 140400.0, 181680.0, 272160.0, 319680.0, 490560.0,
-    527520.0, 743040.0, 846720.0, 1123440.0
-);
-
-const float E6[TERM_COUNT] = float[TERM_COUNT](
-    1.0, -504.0, -16632.0, -122976.0, -532728.0, -1575504.0,
-    -4058208.0, -8471232.0, -17047800.0, -29883672.0, -51991632.0,
-    -81170208.0, -129985632.0, -187132176.0, -279550656.0,
-    -384422976.0, -545530104.0
-);
-
-const float ETA3_8[TERM_COUNT] = float[TERM_COUNT](
-    0.0, 1.0, 0.0, 0.0, -8.0, 0.0, 0.0, 20.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, -70.0, 0.0, 0.0, 64.0
-);
-
-vec2 complex_multiply(vec2 left, vec2 right) {
-    return vec2(
-        left.x * right.x - left.y * right.y,
-        left.x * right.y + left.y * right.x
-    );
+vec2 q_term(float coefficient, float exponent, vec2 z) {
+    float radius = exp(-TAU * exponent * z.y);
+    float angle = TAU * exponent * z.x;
+    return coefficient * radius * vec2(cos(angle), sin(angle));
 }
 
-float coefficient(int object_index, int term) {
-    if (object_index == 0) return E4[term];
-    if (object_index == 1) return E6[term];
-    return ETA3_8[term];
+vec2 evaluate_e4(vec2 z) {
+    vec2 value = vec2(1.0, 0.0);
+    value += q_term(240.0, 1.0, z);
+    value += q_term(2160.0, 2.0, z);
+    value += q_term(6720.0, 3.0, z);
+    value += q_term(17520.0, 4.0, z);
+    value += q_term(30240.0, 5.0, z);
+    value += q_term(60480.0, 6.0, z);
+    value += q_term(82560.0, 7.0, z);
+    value += q_term(140400.0, 8.0, z);
+    value += q_term(181680.0, 9.0, z);
+    value += q_term(272160.0, 10.0, z);
+    value += q_term(319680.0, 11.0, z);
+    value += q_term(490560.0, 12.0, z);
+    value += q_term(527520.0, 13.0, z);
+    value += q_term(743040.0, 14.0, z);
+    value += q_term(846720.0, 15.0, z);
+    value += q_term(1123440.0, 16.0, z);
+    return value;
+}
+
+vec2 evaluate_e6(vec2 z) {
+    vec2 value = vec2(1.0, 0.0);
+    value += q_term(-504.0, 1.0, z);
+    value += q_term(-16632.0, 2.0, z);
+    value += q_term(-122976.0, 3.0, z);
+    value += q_term(-532728.0, 4.0, z);
+    value += q_term(-1575504.0, 5.0, z);
+    value += q_term(-4058208.0, 6.0, z);
+    value += q_term(-8471232.0, 7.0, z);
+    value += q_term(-17047800.0, 8.0, z);
+    value += q_term(-29883672.0, 9.0, z);
+    value += q_term(-51991632.0, 10.0, z);
+    value += q_term(-81170208.0, 11.0, z);
+    value += q_term(-129985632.0, 12.0, z);
+    value += q_term(-187132176.0, 13.0, z);
+    value += q_term(-279550656.0, 14.0, z);
+    value += q_term(-384422976.0, 15.0, z);
+    value += q_term(-545530104.0, 16.0, z);
+    return value;
+}
+
+vec2 evaluate_eta3_8(vec2 z) {
+    vec2 value = vec2(0.0);
+    value += q_term(1.0, 1.0, z);
+    value += q_term(-8.0, 4.0, z);
+    value += q_term(20.0, 7.0, z);
+    value += q_term(-70.0, 13.0, z);
+    value += q_term(64.0, 16.0, z);
+    return value;
 }
 
 vec2 evaluate_form(int object_index, vec2 z) {
-    float radius = exp(-TAU * z.y);
-    float angle = TAU * z.x;
-    vec2 q = radius * vec2(cos(angle), sin(angle));
-    vec2 power = vec2(1.0, 0.0);
-    vec2 value = vec2(coefficient(object_index, 0), 0.0);
-
-    for (int term = 1; term < TERM_COUNT; ++term) {
-        power = complex_multiply(power, q);
-        value += coefficient(object_index, term) * power;
-    }
-    return value;
+    if (object_index == 0) return evaluate_e4(z);
+    if (object_index == 1) return evaluate_e6(z);
+    return evaluate_eta3_8(z);
 }
 
 float positive_fract(float value) {
