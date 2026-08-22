@@ -46,7 +46,7 @@ jobs:
           fi
           grep -q 'android:hasCode="false"' app/src/main/AndroidManifest.xml
 
-      - name: Check bundled Wegert shader
+      - name: Check bundled Dirichlet L Wegert shader
         run: |
           sudo apt-get update
           sudo apt-get install --yes glslang-tools
@@ -54,7 +54,16 @@ jobs:
           grep -q 'uniform vec2 u_center' app/src/main/assets/l-wegert.frag
           grep -q 'uniform int u_object' app/src/main/assets/l-wegert.frag
           grep -q 'hcl_to_srgb' app/src/main/assets/l-wegert.frag
-          grep -q 'evaluate_eta3_8' app/src/main/assets/l-wegert.frag
+          grep -q 'hurwitz_zeta' app/src/main/assets/l-wegert.frag
+          grep -q 'evaluate_chi3' app/src/main/assets/l-wegert.frag
+          grep -q 'evaluate_chi4' app/src/main/assets/l-wegert.frag
+          grep -q 'evaluate_chi5' app/src/main/assets/l-wegert.frag
+          ! grep -q 'evaluate_e4' app/src/main/assets/l-wegert.frag
+          ! grep -q 'evaluate_eta3_8' app/src/main/assets/l-wegert.frag
+          python3 -m json.tool data/dirichlet-l-neighbors.json > /dev/null
+          grep -q '1-3-3.2-r1-0-0' data/dirichlet-l-neighbors.json
+          grep -q '1-2e2-4.3-r1-0-0' data/dirichlet-l-neighbors.json
+          grep -q '1-5-5.4-r0-0-0' data/dirichlet-l-neighbors.json
           glslangValidator -S frag app/src/main/assets/l-wegert.frag
 
       - name: Build debug APK
@@ -108,7 +117,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Emulate phone and test navigation
+      - name: Emulate phone and test camera-preserving navigation
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -125,30 +134,30 @@ jobs:
             adb logcat -c
             adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n org.isomorphisms.l/android.app.NativeActivity
             sleep 4
-            adb exec-out screencap -p > l-e4.png
+            adb exec-out screencap -p > l-chi3.png
             adb shell input tap 640 610
             sleep 2
-            adb exec-out screencap -p > l-e6.png
+            adb exec-out screencap -p > l-chi4.png
             adb shell input swipe 320 320 700 320 450
             sleep 2
-            adb exec-out screencap -p > l-e6-pan.png
+            adb exec-out screencap -p > l-chi4-pan.png
             adb logcat -d > l-phone.log
             adb shell pidof -s org.isomorphisms.l | tr -d '\r' | grep -Eq '^[0-9]+$'
             ! grep -Eiq 'shader compilation failed|program link failed|eglInitialize failed|could not choose GLES3 EGL config|could not create EGL surface/context|eglMakeCurrent failed|could not open asset|missing camera/object' l-phone.log
             grep -q 'renderer ready' l-phone.log
             grep -q 'first frame: object=0' l-phone.log
             grep -q 'selected object 1' l-phone.log
-            test "$(sha256sum l-e4.png | cut -d' ' -f1)" != "$(sha256sum l-e6.png | cut -d' ' -f1)"
-            test "$(sha256sum l-e6.png | cut -d' ' -f1)" != "$(sha256sum l-e6-pan.png | cut -d' ' -f1)"
+            test "$(sha256sum l-chi3.png | cut -d' ' -f1)" != "$(sha256sum l-chi4.png | cut -d' ' -f1)"
+            test "$(sha256sum l-chi4.png | cut -d' ' -f1)" != "$(sha256sum l-chi4-pan.png | cut -d' ' -f1)"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: l-phone-emulator-evidence
           path: |
-            l-e4.png
-            l-e6.png
-            l-e6-pan.png
+            l-chi3.png
+            l-chi4.png
+            l-chi4-pan.png
             l-phone.log
           if-no-files-found: warn
 

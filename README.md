@@ -2,8 +2,8 @@
 
 A small visual game for exploring L-functions and nearby mathematical objects.
 
-The first experiment starts from LMFDB-style objects, renders the mathematics before the metadata, and turns nearby parameter changes into ordinary-language questions.
+The first screen should be a mathematical picture before a database record, and nearby parameter changes should become ordinary-language questions.
 
-Open `index.html` in a browser. There is no build step and no network dependency.
+The browser `index.html` remains the original no-build modular-form stub. The native Android prototype in `ANDROID.md` now renders actual Dirichlet `L(s, chi)` objects for the LMFDB characters `3.2`, `4.3`, and `5.4`, with bundled neighbor questions and no first-paint network dependency.
 
-The current stub bundles three modular-form q-series and renders a coarse Wegert portrait first, then yields and refines it. See `NOTES.md` for the intended LMFDB interaction model.
+See `NOTES.md` for the LMFDB interaction model.
