@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; padding: 0 0 3rem; background: Canvas; color: CanvasText; }
+  main { max-width: 54rem; margin: 0 auto; }
+  .portrait-wrap { position: relative; width: 100%; background: #111; }
+  canvas { display: block; width: 100%; height: auto; aspect-ratio: 480 / 348; }
+  .name { position: absolute; left: .75rem; top: .6rem; margin: 0; color: white; font-size: clamp(1.4rem, 5vw, 2.4rem); text-shadow: 0 1px 4px black; }
+  .status { min-height: 1.5rem; margin: .65rem 1rem .25rem; color: GrayText; font-size: .95rem; }
+  .questions { display: grid; gap: .7rem; padding: .5rem 1rem; }
+  button { min-height: 3.25rem; padding: .75rem 1rem; border: 1px solid color-mix(in srgb, CanvasText 20%, transparent); border-radius: .8rem; background: ButtonFace; color: ButtonText; font: inherit; font-size: 1.05rem; text-align: left; }
+  button:active { transform: translateY(1px); }
+</style>
+<main>
+  <section class="portrait-wrap" aria-label="Wegert phase portrait">
+    <canvas id="portrait" width="160" height="116"></canvas>
+    <h1 class="name" id="current">E₄</h1>
+  </section>
+  <p class="status" id="status">drawing…</p>
+  <section class="questions" aria-label="Nearby questions">
+    <button type="button" data-form="e6">What happens if I change weight 4 to 6?</button>
+    <button type="button" data-form="9.4.a.a">What happens if I change level 1 to 9?</button>
+    <button type="button" data-form="e4">Take me back to weight 4.</button>
+  </section>
+</main>
+<script src="src/forms.js"></script>
+<script src="src/wegert.js"></script>
+<script src="src/app.js"></script>
