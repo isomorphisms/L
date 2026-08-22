@@ -21,9 +21,11 @@ The portrait occupies the upper 82% of the screen.
 
 The camera is deliberately preserved when the object changes. The point is to see what changed in the function, not what changed because the viewport jumped.
 
-The first GPU evaluator keeps terms through q^16. That is enough for a fast visual interaction stub on the initial upper-half-plane view; it is not intended as a general high-precision modular-form evaluator.
+The first GPU evaluator keeps terms through q^16. The q-series is deliberately unrolled into explicit trigonometric terms rather than dynamically indexing coefficient arrays; this is easier to inspect and avoids depending on mobile GLSL array-indexing behavior. It is enough for a fast visual interaction stub on the initial upper-half-plane view, not a general high-precision modular-form evaluator.
 
 The phase palette follows the HCL Wegert renderer already used in `isomorphisms/wegert`: hue from argument, logarithmic modulus bands, chroma 45, and lightness around 66--73.
+
+Android's system navigation area can overlay the extreme bottom edge on devices using three-button navigation. The mathematical navigation targets extend above that area; tap the labels rather than the device-navigation buttons.
 
 ## Build
 
