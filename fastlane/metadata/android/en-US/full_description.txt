@@ -1,0 +1,5 @@
+L is a native Android visual explorer for L-functions.
+
+The first release compares three primitive real quadratic Dirichlet L-functions through GPU-rendered Wegert phase portraits. One finger pans the complex-plane camera and two fingers zoom; changing the selected L-function preserves the camera so the portraits can be compared point-for-point.
+
+The bundled evaluator uses a small Euler-Maclaurin continuation of Hurwitz zeta for a fast visual rendering path. It is intended for exploration rather than high-precision numerical computation.
